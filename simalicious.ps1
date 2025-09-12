@@ -1,38 +1,20 @@
-# ========================================
-# SIMALICIOUS - Malware Simulation Script
-# ========================================
-# 
-# WARNING: This script is for CYBERSECURITY TRAINING ONLY
-# It simulates malicious behavior without causing actual harm
-# Do NOT use this for illegal purposes
-#
-# This script demonstrates common malware behaviors:
-# - System reconnaissance
-# - File discovery
-# - Fake encryption simulation
-# - Ransomware note creation
-# - Persistence simulation
-# ========================================
-
 param(
     [switch]$Verbose,
     [switch]$QuickMode
 )
-
-# Training banner
 Write-Host "
-██████╗ ██╗███╗   ███╗ █████╗ ██╗     ██╗ ██████╗██╗ ██████╗ ██╗   ██╗███████╗
-██╔══██╗██║████╗ ████║██╔══██╗██║     ██║██╔════╝██║██╔═══██╗██║   ██║██╔════╝
-███████║██║██╔████╔██║███████║██║     ██║██║     ██║██║   ██║██║   ██║███████╗
-██╔══██║██║██║╚██╔╝██║██╔══██║██║     ██║██║     ██║██║   ██║██║   ██║╚════██║
-██║  ██║██║██║ ╚═╝ ██║██║  ██║███████╗██║╚██████╗██║╚██████╔╝╚██████╔╝███████║
-╚═╝  ╚═╝╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═╝ ╚═════╝╚═╝ ╚═════╝  ╚═════╝ ╚══════╝
+  _____ _____ __  __          _      _____ _____ _____ ____  _    _  _____ 
+ / ____|_   _|  \/  |   /\   | |    |_   _/ ____|_   _/ __ \| |  | |/ ____|
+| (___   | | | \  / |  /  \  | |      | || |      | || |  | | |  | | (___  
+ \___ \  | | | |\/| | / /\ \ | |      | || |      | || |  | | |  | |\___ \ 
+ ____) |_| |_| |  | |/ ____ \| |____ _| || |____ _| || |__| | |__| |____) |
+|_____/|_____|_|  |_/_/    \_\______|_____\_____|_____\____/ \____/|_____/ 
 " -ForegroundColor Red
 
 Write-Host "[TRAINING SIMULATION] Starting malware simulation..." -ForegroundColor Yellow
 Write-Host "[TRAINING SIMULATION] This is NOT real malware - for education only!" -ForegroundColor Green
 
-# Simulate initial delay (malware often has delays)
+
 if (-not $QuickMode) {
     Write-Host "[*] Initializing..." -ForegroundColor Cyan
     Start-Sleep -Seconds 2
@@ -242,11 +224,11 @@ foreach ($server in $fakeC2Servers) {
     Write-Host "    Attempting connection to $server..." -ForegroundColor Yellow
     if (-not $QuickMode) { Start-Sleep -Milliseconds 800 }
     Write-Host "    [SIMULATED] Connection established" -ForegroundColor Green
-    break
 }
 
 # Simulate data exfiltration
 Write-Host "    [SIMULATED] Exfiltrating system information..." -ForegroundColor Yellow
+Start-Sleep -Milliseconds 800
 Write-Host "    [SIMULATED] Reporting successful infection..." -ForegroundColor Yellow
 
 # =======================
@@ -256,13 +238,14 @@ Write-Host "`n[+] Implementing anti-analysis techniques..." -ForegroundColor Red
 Write-Host "    [SIMULATED] Checking for virtual machines..." -ForegroundColor Yellow
 Write-Host "    [SIMULATED] Detecting debugging tools..." -ForegroundColor Yellow
 Write-Host "    [SIMULATED] Verifying sandbox environment..." -ForegroundColor Yellow
+Start-Sleep -Milliseconds 800
 
 # =======================
 # COMPLETION MESSAGE
 # =======================
-Write-Host "`n" + "="*60 -ForegroundColor Red
+Write-Host $("`n" +$("=")*60) -ForegroundColor Red
 Write-Host "MALWARE SIMULATION COMPLETE" -ForegroundColor Red
-Write-Host "="*60 -ForegroundColor Red
+Write-Host $("`n" + $("=") * 60) -ForegroundColor Red
 
 Write-Host "`n**TRAINING SUMMARY:**" -ForegroundColor Green
 Write-Host "✓ System reconnaissance completed" -ForegroundColor Green  
@@ -280,16 +263,6 @@ if ($IsWindows) {
 } else {
     Write-Host "To clean up: rm -rf '$tempDir' and check ~/Desktop for ransom notes" -ForegroundColor Cyan
 }
-
-Write-Host "`n**EDUCATIONAL NOTES:**" -ForegroundColor Yellow
-Write-Host "This simulation demonstrated common malware behaviors including:" -ForegroundColor White
-Write-Host "- Initial system reconnaissance and environment detection" -ForegroundColor White
-Write-Host "- File discovery and targeting of valuable data" -ForegroundColor White  
-Write-Host "- Encryption simulation with progress indicators" -ForegroundColor White
-Write-Host "- Ransom note creation and placement" -ForegroundColor White
-Write-Host "- Persistence mechanism installation" -ForegroundColor White
-Write-Host "- Command and control communication" -ForegroundColor White
-Write-Host "- Anti-analysis and evasion techniques" -ForegroundColor White
 
 Write-Host "`nRemember: Always verify scripts before executing them!" -ForegroundColor Red
 Write-Host "This was a controlled simulation for training purposes only." -ForegroundColor Green
