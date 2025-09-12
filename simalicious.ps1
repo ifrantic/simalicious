@@ -266,3 +266,17 @@ if ($IsWindows) {
 
 Write-Host "`nRemember: Always verify scripts before executing them!" -ForegroundColor Red
 Write-Host "This was a controlled simulation for training purposes only." -ForegroundColor Green
+
+# open the note in notepad for user to see
+if ($IsWindows) {
+    $desktopNote = Join-Path $env:USERPROFILE "Desktop\README_SIMALICIOUS_TRAINING.txt"
+    if (Test-Path $desktopNote) {
+        Start-Process notepad.exe $desktopNote
+    }
+} else {
+    $desktopNote = Join-Path $env:HOME "Desktop/README_SIMALICIOUS_TRAINING.txt"
+    if (Test-Path $desktopNote) {
+        Start-Process "gedit" $desktopNote
+    }
+}
+Read-Host -Prompt "Press Enter to exit"
