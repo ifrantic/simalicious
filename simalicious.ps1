@@ -2,6 +2,32 @@ param(
     [switch]$Verbose,
     [switch]$QuickMode
 )
+
+# Ensure platform detection and cross-platform home directory
+# More robust platform detection with fallbacks
+$isWindowsPlatform = $false
+if ($PSVersionTable.Platform -eq 'Win32NT' -or $PSVersionTable.PSEdition -eq 'Desktop' -or $env:OS -eq 'Windows_NT' -or $env:USERPROFILE) {
+    $isWindowsPlatform = $true
+}
+
+if ($isWindowsPlatform) {
+    $homeDir = if ($env:USERPROFILE) { $env:USERPROFILE } else { "C:\Users\$env:USERNAME" }
+    $tempDir = if ($env:TEMP) { Join-Path $env:TEMP "simalicious_training" } else { "C:\Temp\simalicious_training" }
+    $desktopEditor = "notepad.exe"
+}
+else {
+    $homeDir = if ($env:HOME) { $env:HOME } else { "/home/$env:USER" }
+    $tempDir = Join-Path "/tmp" "simalicious_training"
+    # Try to find available text editors for Linux
+    $desktopEditor = $null
+    $editors = @("xdg-open", "gedit", "nano", "vim", "kate", "mousepad")
+    foreach ($editor in $editors) {
+        if (Get-Command $editor -ErrorAction SilentlyContinue) {
+            $desktopEditor = $editor
+            break
+        }
+    }
+}
 Write-Host "
   _____ _____ __  __          _      _____ _____ _____ ____  _    _  _____ 
  / ____|_   _|  \/  |   /\   | |    |_   _/ ____|_   _/ __ \| |  | |/ ____|
@@ -25,18 +51,21 @@ if (-not $QuickMode) {
 # =======================
 Write-Host "`n[+] Gathering system information..." -ForegroundColor Red
 
+ 
+
 $systemInfo = @{
     ComputerName = if ($env:COMPUTERNAME) { $env:COMPUTERNAME } else { $env:HOSTNAME }
-    Username = if ($env:USERNAME) { $env:USERNAME } else { $env:USER }
-    Domain = if ($env:USERDOMAIN) { $env:USERDOMAIN } else { "WORKGROUP" }
-    OS = if ($IsWindows) { 
+    Username     = if ($env:USERNAME) { $env:USERNAME } else { $env:USER }
+    Domain       = if ($env:USERDOMAIN) { $env:USERDOMAIN } else { "WORKGROUP" }
+    OS           = if ($isWindowsPlatform) { 
         try { (Get-WmiObject Win32_OperatingSystem -ErrorAction SilentlyContinue).Caption } 
         catch { "Windows (WMI unavailable)" }
-    } else { 
+    }
+    else { 
         "$($PSVersionTable.Platform) $($PSVersionTable.OS)" 
     }
     Architecture = if ($env:PROCESSOR_ARCHITECTURE) { $env:PROCESSOR_ARCHITECTURE } else { [System.Environment]::GetEnvironmentVariable("PROCESSOR_ARCHITECTURE") }
-    Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Timestamp    = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 }
 
 if ($Verbose) {
@@ -56,21 +85,11 @@ $targetExtensions = @("*.txt", "*.doc", "*.docx", "*.pdf", "*.jpg", "*.png", "*.
 $discoveredFiles = @()
 
 # Simulate file discovery in user directories (cross-platform paths)
-$searchPaths = @()
-if ($IsWindows) {
-    $searchPaths = @(
-        "$env:USERPROFILE\Documents",
-        "$env:USERPROFILE\Desktop", 
-        "$env:USERPROFILE\Pictures"
-    )
-} else {
-    $searchPaths = @(
-        "$env:HOME/Documents",
-        "$env:HOME/Desktop", 
-        "$env:HOME/Pictures"
-    )
-}
-
+$searchPaths = @(
+    (Join-Path $homeDir "Documents"),
+    (Join-Path $homeDir "Desktop"),
+    (Join-Path $homeDir "Pictures")
+)
 foreach ($path in $searchPaths) {
     if (Test-Path $path) {
         Write-Host "    Scanning: $path" -ForegroundColor Yellow
@@ -78,7 +97,8 @@ foreach ($path in $searchPaths) {
             try {
                 $files = Get-ChildItem -Path $path -Filter $ext -Recurse -ErrorAction SilentlyContinue | Select-Object -First 5
                 $discoveredFiles += $files
-            } catch {
+            }
+            catch {
                 # Silently continue on access denied
             }
         }
@@ -94,11 +114,6 @@ Write-Host "    Found $($discoveredFiles.Count) files to 'encrypt'" -ForegroundC
 Write-Host "`n[+] Starting encryption process..." -ForegroundColor Red
 
 # Create a temporary directory for simulation artifacts
-$tempDir = if ($IsWindows) {
-    Join-Path $env:TEMP "simalicious_training"
-} else {
-    Join-Path "/tmp" "simalicious_training"
-}
 if (-not (Test-Path $tempDir)) {
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 }
@@ -108,8 +123,9 @@ $totalFiles = [Math]::Max($discoveredFiles.Count, 10)
 for ($i = 1; $i -le $totalFiles; $i++) {
     $percent = [Math]::Round(($i / $totalFiles) * 100)
     $fileName = if ($i -le $discoveredFiles.Count) { 
-        Split-Path $discoveredFiles[$i-1].FullName -Leaf 
-    } else { 
+        Split-Path $discoveredFiles[$i - 1].FullName -Leaf 
+    }
+    else { 
         "file_$i.txt" 
     }
     
@@ -172,26 +188,18 @@ User: $($systemInfo.Username)
 "@
 
 # Save ransom note to multiple locations for realism
-$noteLocations = @()
-if ($IsWindows) {
-    $noteLocations = @(
-        (Join-Path $env:USERPROFILE "Desktop\README_SIMALICIOUS_TRAINING.txt"),
-        (Join-Path $tempDir "RANSOM_NOTE.txt"),
-        (Join-Path $env:TEMP "YOUR_FILES_ARE_ENCRYPTED.txt")
-    )
-} else {
-    $noteLocations = @(
-        (Join-Path $env:HOME "Desktop/README_SIMALICIOUS_TRAINING.txt"),
-        (Join-Path $tempDir "RANSOM_NOTE.txt"),
-        (Join-Path "/tmp" "YOUR_FILES_ARE_ENCRYPTED.txt")
-    )
-}
+$noteLocations = @(
+    (Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"),
+    (Join-Path $tempDir "RANSOM_NOTE.txt"),
+    ($tempDir -replace 'simalicious_training$', 'YOUR_FILES_ARE_ENCRYPTED.txt')
+)
 
 foreach ($location in $noteLocations) {
     try {
         $ransomNote | Out-File -FilePath $location -Force
         Write-Host "    Ransom note created: $location" -ForegroundColor Yellow
-    } catch {
+    }
+    catch {
         Write-Host "    Failed to create note at: $location" -ForegroundColor Gray
     }
 }
@@ -243,7 +251,7 @@ Start-Sleep -Milliseconds 800
 # =======================
 # COMPLETION MESSAGE
 # =======================
-Write-Host $("`n" +$("=")*60) -ForegroundColor Red
+Write-Host $("`n" + $("=") * 60) -ForegroundColor Red
 Write-Host "MALWARE SIMULATION COMPLETE" -ForegroundColor Red
 Write-Host $("`n" + $("=") * 60) -ForegroundColor Red
 
@@ -258,25 +266,45 @@ Write-Host "✓ Anti-analysis techniques demonstrated" -ForegroundColor Green
 
 Write-Host "`n**CLEANUP INFORMATION:**" -ForegroundColor Cyan
 Write-Host "Simulation artifacts created in: $tempDir" -ForegroundColor Cyan
-if ($IsWindows) {
+if ($isWindowsPlatform) {
     Write-Host "To clean up, delete the folder above and any ransom notes on Desktop" -ForegroundColor Cyan
-} else {
+}
+else {
     Write-Host "To clean up: rm -rf '$tempDir' and check ~/Desktop for ransom notes" -ForegroundColor Cyan
 }
 
 Write-Host "`nRemember: Always verify scripts before executing them!" -ForegroundColor Red
 Write-Host "This was a controlled simulation for training purposes only." -ForegroundColor Green
 
-# open the note in notepad for user to see
-if ($IsWindows) {
-    $desktopNote = Join-Path $env:USERPROFILE "Desktop\README_SIMALICIOUS_TRAINING.txt"
-    if (Test-Path $desktopNote) {
-        Start-Process notepad.exe $desktopNote
+# open the note in the appropriate editor for user to see
+$desktopNote = Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"
+if ($homeDir -and (Test-Path $desktopNote)) {
+    if ($desktopEditor) {
+        try {
+            Write-Host "Opening ransom note with $desktopEditor..." -ForegroundColor Yellow
+            if ($isWindowsPlatform) {
+                Start-Process $desktopEditor $desktopNote
+            }
+            else {
+                # For Linux, use different approach based on editor
+                if ($desktopEditor -eq "xdg-open") {
+                    Start-Process $desktopEditor $desktopNote
+                }
+                else {
+                    # For terminal editors, we won't auto-open them
+                    Write-Host "Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
+                }
+            }
+        }
+        catch {
+            Write-Host "Could not automatically open editor. Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
+        }
     }
-} else {
-    $desktopNote = Join-Path $env:HOME "Desktop/README_SIMALICIOUS_TRAINING.txt"
-    if (Test-Path $desktopNote) {
-        Start-Process "gedit" $desktopNote
+    else {
+        Write-Host "Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
     }
+}
+else {
+    Write-Host "Ransom note should be located at: $desktopNote" -ForegroundColor Yellow
 }
 Read-Host -Prompt "Press Enter to exit"
