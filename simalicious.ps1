@@ -2,6 +2,10 @@ param(
     [switch]$Verbose,
     [switch]$QuickMode
 )
+
+# Ensure platform detection and cross-platform home directory
+$IsWindows = $PSVersionTable.Platform -eq 'Win32NT'
+$homeDir = if ($env:HOME) { $env:HOME } elseif ($env:USERPROFILE) { $env:USERPROFILE } else { $null }
 Write-Host "
   _____ _____ __  __          _      _____ _____ _____ ____  _    _  _____ 
  / ____|_   _|  \/  |   /\   | |    |_   _/ ____|_   _/ __ \| |  | |/ ____|
@@ -25,18 +29,21 @@ if (-not $QuickMode) {
 # =======================
 Write-Host "`n[+] Gathering system information..." -ForegroundColor Red
 
+ 
+
 $systemInfo = @{
     ComputerName = if ($env:COMPUTERNAME) { $env:COMPUTERNAME } else { $env:HOSTNAME }
-    Username = if ($env:USERNAME) { $env:USERNAME } else { $env:USER }
-    Domain = if ($env:USERDOMAIN) { $env:USERDOMAIN } else { "WORKGROUP" }
-    OS = if ($IsWindows) { 
+    Username     = if ($env:USERNAME) { $env:USERNAME } else { $env:USER }
+    Domain       = if ($env:USERDOMAIN) { $env:USERDOMAIN } else { "WORKGROUP" }
+    OS           = if ($IsWindows) { 
         try { (Get-WmiObject Win32_OperatingSystem -ErrorAction SilentlyContinue).Caption } 
         catch { "Windows (WMI unavailable)" }
-    } else { 
+    }
+    else { 
         "$($PSVersionTable.Platform) $($PSVersionTable.OS)" 
     }
     Architecture = if ($env:PROCESSOR_ARCHITECTURE) { $env:PROCESSOR_ARCHITECTURE } else { [System.Environment]::GetEnvironmentVariable("PROCESSOR_ARCHITECTURE") }
-    Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Timestamp    = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 }
 
 if ($Verbose) {
@@ -59,15 +66,16 @@ $discoveredFiles = @()
 $searchPaths = @()
 if ($IsWindows) {
     $searchPaths = @(
-        "$env:USERPROFILE\Documents",
-        "$env:USERPROFILE\Desktop", 
-        "$env:USERPROFILE\Pictures"
+        (Join-Path $homeDir "Documents"),
+        (Join-Path $homeDir "Desktop"),
+        (Join-Path $homeDir "Pictures")
     )
-} else {
+}
+else {
     $searchPaths = @(
-        "$env:HOME/Documents",
-        "$env:HOME/Desktop", 
-        "$env:HOME/Pictures"
+        (Join-Path $homeDir "Documents"),
+        (Join-Path $homeDir "Desktop"),
+        (Join-Path $homeDir "Pictures")
     )
 }
 
@@ -78,7 +86,8 @@ foreach ($path in $searchPaths) {
             try {
                 $files = Get-ChildItem -Path $path -Filter $ext -Recurse -ErrorAction SilentlyContinue | Select-Object -First 5
                 $discoveredFiles += $files
-            } catch {
+            }
+            catch {
                 # Silently continue on access denied
             }
         }
@@ -96,7 +105,8 @@ Write-Host "`n[+] Starting encryption process..." -ForegroundColor Red
 # Create a temporary directory for simulation artifacts
 $tempDir = if ($IsWindows) {
     Join-Path $env:TEMP "simalicious_training"
-} else {
+}
+else {
     Join-Path "/tmp" "simalicious_training"
 }
 if (-not (Test-Path $tempDir)) {
@@ -108,8 +118,9 @@ $totalFiles = [Math]::Max($discoveredFiles.Count, 10)
 for ($i = 1; $i -le $totalFiles; $i++) {
     $percent = [Math]::Round(($i / $totalFiles) * 100)
     $fileName = if ($i -le $discoveredFiles.Count) { 
-        Split-Path $discoveredFiles[$i-1].FullName -Leaf 
-    } else { 
+        Split-Path $discoveredFiles[$i - 1].FullName -Leaf 
+    }
+    else { 
         "file_$i.txt" 
     }
     
@@ -175,13 +186,14 @@ User: $($systemInfo.Username)
 $noteLocations = @()
 if ($IsWindows) {
     $noteLocations = @(
-        (Join-Path $env:USERPROFILE "Desktop\README_SIMALICIOUS_TRAINING.txt"),
+        (Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"),
         (Join-Path $tempDir "RANSOM_NOTE.txt"),
         (Join-Path $env:TEMP "YOUR_FILES_ARE_ENCRYPTED.txt")
     )
-} else {
+}
+else {
     $noteLocations = @(
-        (Join-Path $env:HOME "Desktop/README_SIMALICIOUS_TRAINING.txt"),
+        (Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"),
         (Join-Path $tempDir "RANSOM_NOTE.txt"),
         (Join-Path "/tmp" "YOUR_FILES_ARE_ENCRYPTED.txt")
     )
@@ -191,7 +203,8 @@ foreach ($location in $noteLocations) {
     try {
         $ransomNote | Out-File -FilePath $location -Force
         Write-Host "    Ransom note created: $location" -ForegroundColor Yellow
-    } catch {
+    }
+    catch {
         Write-Host "    Failed to create note at: $location" -ForegroundColor Gray
     }
 }
@@ -243,7 +256,7 @@ Start-Sleep -Milliseconds 800
 # =======================
 # COMPLETION MESSAGE
 # =======================
-Write-Host $("`n" +$("=")*60) -ForegroundColor Red
+Write-Host $("`n" + $("=") * 60) -ForegroundColor Red
 Write-Host "MALWARE SIMULATION COMPLETE" -ForegroundColor Red
 Write-Host $("`n" + $("=") * 60) -ForegroundColor Red
 
@@ -260,7 +273,8 @@ Write-Host "`n**CLEANUP INFORMATION:**" -ForegroundColor Cyan
 Write-Host "Simulation artifacts created in: $tempDir" -ForegroundColor Cyan
 if ($IsWindows) {
     Write-Host "To clean up, delete the folder above and any ransom notes on Desktop" -ForegroundColor Cyan
-} else {
+}
+else {
     Write-Host "To clean up: rm -rf '$tempDir' and check ~/Desktop for ransom notes" -ForegroundColor Cyan
 }
 
@@ -269,12 +283,13 @@ Write-Host "This was a controlled simulation for training purposes only." -Foreg
 
 # open the note in notepad for user to see
 if ($IsWindows) {
-    $desktopNote = Join-Path $env:USERPROFILE "Desktop\README_SIMALICIOUS_TRAINING.txt"
+    $desktopNote = Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"
     if (Test-Path $desktopNote) {
         Start-Process notepad.exe $desktopNote
     }
-} else {
-    $desktopNote = Join-Path $env:HOME "Desktop/README_SIMALICIOUS_TRAINING.txt"
+}
+else {
+    $desktopNote = Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"
     if (Test-Path $desktopNote) {
         Start-Process "gedit" $desktopNote
     }
