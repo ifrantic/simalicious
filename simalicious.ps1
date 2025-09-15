@@ -4,8 +4,25 @@ param(
 )
 
 # Ensure platform detection and cross-platform home directory
-$IsWindows = $PSVersionTable.Platform -eq 'Win32NT'
-$homeDir = if ($env:HOME) { $env:HOME } elseif ($env:USERPROFILE) { $env:USERPROFILE } else { $null }
+if ($PSVersionTable.Platform -eq 'Win32NT') {
+    $homeDir = $env:USERPROFILE
+    $tempDir = Join-Path $env:TEMP "simalicious_training"
+    $desktopEditor = "notepad.exe"
+}
+else {
+    $homeDir = $env:HOME
+    $tempDir = Join-Path "/tmp" "simalicious_training"
+    # Try gedit, then xdg-open, else fallback to manual
+    if (Get-Command gedit -ErrorAction SilentlyContinue) {
+        $desktopEditor = "gedit"
+    }
+    elseif (Get-Command xdg-open -ErrorAction SilentlyContinue) {
+        $desktopEditor = "xdg-open"
+    }
+    else {
+        $desktopEditor = $null
+    }
+}
 Write-Host "
   _____ _____ __  __          _      _____ _____ _____ ____  _    _  _____ 
  / ____|_   _|  \/  |   /\   | |    |_   _/ ____|_   _/ __ \| |  | |/ ____|
@@ -63,22 +80,11 @@ $targetExtensions = @("*.txt", "*.doc", "*.docx", "*.pdf", "*.jpg", "*.png", "*.
 $discoveredFiles = @()
 
 # Simulate file discovery in user directories (cross-platform paths)
-$searchPaths = @()
-if ($IsWindows) {
-    $searchPaths = @(
-        (Join-Path $homeDir "Documents"),
-        (Join-Path $homeDir "Desktop"),
-        (Join-Path $homeDir "Pictures")
-    )
-}
-else {
-    $searchPaths = @(
-        (Join-Path $homeDir "Documents"),
-        (Join-Path $homeDir "Desktop"),
-        (Join-Path $homeDir "Pictures")
-    )
-}
-
+$searchPaths = @(
+    (Join-Path $homeDir "Documents"),
+    (Join-Path $homeDir "Desktop"),
+    (Join-Path $homeDir "Pictures")
+)
 foreach ($path in $searchPaths) {
     if (Test-Path $path) {
         Write-Host "    Scanning: $path" -ForegroundColor Yellow
@@ -103,12 +109,6 @@ Write-Host "    Found $($discoveredFiles.Count) files to 'encrypt'" -ForegroundC
 Write-Host "`n[+] Starting encryption process..." -ForegroundColor Red
 
 # Create a temporary directory for simulation artifacts
-$tempDir = if ($IsWindows) {
-    Join-Path $env:TEMP "simalicious_training"
-}
-else {
-    Join-Path "/tmp" "simalicious_training"
-}
 if (-not (Test-Path $tempDir)) {
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 }
@@ -183,21 +183,11 @@ User: $($systemInfo.Username)
 "@
 
 # Save ransom note to multiple locations for realism
-$noteLocations = @()
-if ($IsWindows) {
-    $noteLocations = @(
-        (Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"),
-        (Join-Path $tempDir "RANSOM_NOTE.txt"),
-        (Join-Path $env:TEMP "YOUR_FILES_ARE_ENCRYPTED.txt")
-    )
-}
-else {
-    $noteLocations = @(
-        (Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"),
-        (Join-Path $tempDir "RANSOM_NOTE.txt"),
-        (Join-Path "/tmp" "YOUR_FILES_ARE_ENCRYPTED.txt")
-    )
-}
+$noteLocations = @(
+    (Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"),
+    (Join-Path $tempDir "RANSOM_NOTE.txt"),
+    ($tempDir -replace 'simalicious_training$', 'YOUR_FILES_ARE_ENCRYPTED.txt')
+)
 
 foreach ($location in $noteLocations) {
     try {
@@ -271,7 +261,7 @@ Write-Host "✓ Anti-analysis techniques demonstrated" -ForegroundColor Green
 
 Write-Host "`n**CLEANUP INFORMATION:**" -ForegroundColor Cyan
 Write-Host "Simulation artifacts created in: $tempDir" -ForegroundColor Cyan
-if ($IsWindows) {
+if ($homeDir -eq $env:USERPROFILE) {
     Write-Host "To clean up, delete the folder above and any ransom notes on Desktop" -ForegroundColor Cyan
 }
 else {
@@ -281,17 +271,14 @@ else {
 Write-Host "`nRemember: Always verify scripts before executing them!" -ForegroundColor Red
 Write-Host "This was a controlled simulation for training purposes only." -ForegroundColor Green
 
-# open the note in notepad for user to see
-if ($IsWindows) {
-    $desktopNote = Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"
-    if (Test-Path $desktopNote) {
-        Start-Process notepad.exe $desktopNote
+# open the note in the appropriate editor for user to see
+$desktopNote = Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"
+if (Test-Path $desktopNote) {
+    if ($desktopEditor) {
+        Start-Process $desktopEditor $desktopNote
     }
-}
-else {
-    $desktopNote = Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"
-    if (Test-Path $desktopNote) {
-        Start-Process "gedit" $desktopNote
+    else {
+        Write-Host "Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
     }
 }
 Read-Host -Prompt "Press Enter to exit"
