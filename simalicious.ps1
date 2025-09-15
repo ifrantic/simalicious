@@ -308,3 +308,5 @@ else {
     Write-Host "Ransom note should be located at: $desktopNote" -ForegroundColor Yellow
 }
 Read-Host -Prompt "Press Enter to exit"
+
+# End of script - ensure proper termination
