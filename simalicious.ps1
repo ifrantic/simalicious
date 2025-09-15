@@ -18,15 +18,14 @@ if ($isWindowsPlatform) {
 else {
     $homeDir = if ($env:HOME) { $env:HOME } else { "/home/$env:USER" }
     $tempDir = Join-Path "/tmp" "simalicious_training"
-    # Try gedit, then xdg-open, else fallback to manual
-    if (Get-Command gedit -ErrorAction SilentlyContinue) {
-        $desktopEditor = "gedit"
-    }
-    elseif (Get-Command xdg-open -ErrorAction SilentlyContinue) {
-        $desktopEditor = "xdg-open"
-    }
-    else {
-        $desktopEditor = $null
+    # Try to find available text editors for Linux
+    $desktopEditor = $null
+    $editors = @("xdg-open", "gedit", "nano", "vim", "kate", "mousepad")
+    foreach ($editor in $editors) {
+        if (Get-Command $editor -ErrorAction SilentlyContinue) {
+            $desktopEditor = $editor
+            break
+        }
     }
 }
 Write-Host "
@@ -282,14 +281,30 @@ $desktopNote = Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"
 if ($homeDir -and (Test-Path $desktopNote)) {
     if ($desktopEditor) {
         try {
-            Start-Process $desktopEditor $desktopNote
+            Write-Host "Opening ransom note with $desktopEditor..." -ForegroundColor Yellow
+            if ($isWindowsPlatform) {
+                Start-Process $desktopEditor $desktopNote
+            }
+            else {
+                # For Linux, use different approach based on editor
+                if ($desktopEditor -eq "xdg-open") {
+                    Start-Process $desktopEditor $desktopNote
+                }
+                else {
+                    # For terminal editors, we won't auto-open them
+                    Write-Host "Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
+                }
+            }
         }
         catch {
-            Write-Host "Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
+            Write-Host "Could not automatically open editor. Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
         }
     }
     else {
         Write-Host "Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
     }
+}
+else {
+    Write-Host "Ransom note should be located at: $desktopNote" -ForegroundColor Yellow
 }
 Read-Host -Prompt "Press Enter to exit"
