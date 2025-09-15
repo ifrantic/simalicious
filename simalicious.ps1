@@ -4,13 +4,19 @@ param(
 )
 
 # Ensure platform detection and cross-platform home directory
-if ($PSVersionTable.Platform -eq 'Win32NT') {
-    $homeDir = $env:USERPROFILE
-    $tempDir = Join-Path $env:TEMP "simalicious_training"
+# More robust platform detection with fallbacks
+$isWindowsPlatform = $false
+if ($PSVersionTable.Platform -eq 'Win32NT' -or $PSVersionTable.PSEdition -eq 'Desktop' -or $env:OS -eq 'Windows_NT' -or $env:USERPROFILE) {
+    $isWindowsPlatform = $true
+}
+
+if ($isWindowsPlatform) {
+    $homeDir = if ($env:USERPROFILE) { $env:USERPROFILE } else { "C:\Users\$env:USERNAME" }
+    $tempDir = if ($env:TEMP) { Join-Path $env:TEMP "simalicious_training" } else { "C:\Temp\simalicious_training" }
     $desktopEditor = "notepad.exe"
 }
 else {
-    $homeDir = $env:HOME
+    $homeDir = if ($env:HOME) { $env:HOME } else { "/home/$env:USER" }
     $tempDir = Join-Path "/tmp" "simalicious_training"
     # Try gedit, then xdg-open, else fallback to manual
     if (Get-Command gedit -ErrorAction SilentlyContinue) {
@@ -52,7 +58,7 @@ $systemInfo = @{
     ComputerName = if ($env:COMPUTERNAME) { $env:COMPUTERNAME } else { $env:HOSTNAME }
     Username     = if ($env:USERNAME) { $env:USERNAME } else { $env:USER }
     Domain       = if ($env:USERDOMAIN) { $env:USERDOMAIN } else { "WORKGROUP" }
-    OS           = if ($IsWindows) { 
+    OS           = if ($isWindowsPlatform) { 
         try { (Get-WmiObject Win32_OperatingSystem -ErrorAction SilentlyContinue).Caption } 
         catch { "Windows (WMI unavailable)" }
     }
@@ -261,7 +267,7 @@ Write-Host "✓ Anti-analysis techniques demonstrated" -ForegroundColor Green
 
 Write-Host "`n**CLEANUP INFORMATION:**" -ForegroundColor Cyan
 Write-Host "Simulation artifacts created in: $tempDir" -ForegroundColor Cyan
-if ($homeDir -eq $env:USERPROFILE) {
+if ($isWindowsPlatform) {
     Write-Host "To clean up, delete the folder above and any ransom notes on Desktop" -ForegroundColor Cyan
 }
 else {
@@ -273,9 +279,14 @@ Write-Host "This was a controlled simulation for training purposes only." -Foreg
 
 # open the note in the appropriate editor for user to see
 $desktopNote = Join-Path $homeDir "Desktop/README_SIMALICIOUS_TRAINING.txt"
-if (Test-Path $desktopNote) {
+if ($homeDir -and (Test-Path $desktopNote)) {
     if ($desktopEditor) {
-        Start-Process $desktopEditor $desktopNote
+        try {
+            Start-Process $desktopEditor $desktopNote
+        }
+        catch {
+            Write-Host "Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
+        }
     }
     else {
         Write-Host "Please open the ransom note manually: $desktopNote" -ForegroundColor Yellow
